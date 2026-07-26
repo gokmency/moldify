@@ -92,8 +92,8 @@ export function MoldifyStudio() {
       <StudioHeader />
 
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[288px_minmax(420px,1fr)_352px]">
-        <aside className="panel hidden min-h-0 flex-col border-r lg:flex">
-          <ScrollArea className="min-h-0 flex-1">
+        <aside className="panel hidden min-h-0 min-w-0 flex-col overflow-hidden border-r lg:flex">
+          <ScrollArea className="min-h-0 min-w-0 flex-1 overflow-hidden">
             <SourcePanel session={session} />
           </ScrollArea>
         </aside>

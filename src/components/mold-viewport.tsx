@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import {
   Bounds,
@@ -39,35 +39,78 @@ type Props = {
   cameraCommand: CameraCommand;
 };
 
+type CameraPose = {
+  position: [number, number, number];
+  target: [number, number, number];
+  up?: [number, number, number];
+};
+
 function axisIndex(axis: MoldParameters["splitDirection"]) {
   return axis === "X" ? 0 : axis === "Y" ? 1 : 2;
 }
 
-function CameraRig({ command }: { command: CameraCommand }) {
+function CameraRig({
+  command,
+  onApplied,
+}: {
+  command: CameraCommand;
+  onApplied: (command: CameraCommand, pose: CameraPose | null) => void;
+}) {
   const bounds = useBounds();
-  const { camera, controls } = useThree();
+  const { camera, controls, invalidate } = useThree();
 
   useEffect(() => {
+    const refreshedBounds = bounds.refresh().clip();
     if (command.type === "fit") {
-      bounds.refresh().clip().fit();
+      refreshedBounds.fit();
+      onApplied(command, null);
       return;
     }
-    const positions = {
-      reset: [65, 52, 72],
-      iso: [65, 52, 72],
-      top: [0.01, 120, 0.01],
-      front: [0.01, 0.01, 120],
-    } as const;
-    const position = positions[command.type];
-    if (!position) return;
-    camera.position.set(position[0], position[1], position[2]);
-    camera.lookAt(0, 0, 0);
+
+    const { center, distance } = refreshedBounds.getSize();
+    const target = center.toArray() as [number, number, number];
+    const viewDistance = Math.max(distance, 1);
+    const poses: Record<Exclude<CameraCommand["type"], "fit">, CameraPose> = {
+      reset: {
+        position: [
+          center.x + viewDistance * 0.62,
+          center.y + viewDistance * 0.5,
+          center.z + viewDistance * 0.7,
+        ],
+        target,
+      },
+      iso: {
+        position: [
+          center.x + viewDistance * 0.62,
+          center.y + viewDistance * 0.5,
+          center.z + viewDistance * 0.7,
+        ],
+        target,
+      },
+      top: {
+        position: [center.x, center.y + viewDistance, center.z],
+        target,
+        up: [0, 0, -1],
+      },
+      front: {
+        position: [center.x, center.y, center.z + viewDistance],
+        target,
+      },
+    };
+    const pose = poses[command.type];
+    camera.up.set(...(pose.up ?? [0, 1, 0]));
+    camera.position.set(...pose.position);
+    camera.lookAt(...pose.target);
+    camera.updateMatrixWorld();
+    camera.updateProjectionMatrix();
     const orbit = controls as
       | { target?: Vector3; update?: () => void }
       | undefined;
-    orbit?.target?.set(0, 0, 0);
+    orbit?.target?.set(...pose.target);
     orbit?.update?.();
-  }, [bounds, camera, command, controls]);
+    invalidate();
+    onApplied(command, pose);
+  }, [bounds, camera, command, controls, invalidate, onApplied]);
 
   return null;
 }
@@ -77,7 +120,10 @@ function MoldPreview({
   parameters,
   options,
   cameraCommand,
-}: Props) {
+  onCameraApplied,
+}: Props & {
+  onCameraApplied: (command: CameraCommand, pose: CameraPose | null) => void;
+}) {
   const preview = useMemo(
     () => (geometry ? geometry.clone() : createDemoBufferGeometry()),
     [geometry],
@@ -112,7 +158,7 @@ function MoldPreview({
 
   return (
     <Bounds fit clip observe margin={1.35}>
-      <CameraRig command={cameraCommand} />
+      <CameraRig command={cameraCommand} onApplied={onCameraApplied} />
       <group rotation={[-Math.PI / 2, 0, 0]}>
         <mesh geometry={preview}>
           <meshStandardMaterial
@@ -216,8 +262,28 @@ function MoldPreview({
 }
 
 export function MoldViewport(props: Props) {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const handleCameraApplied = useCallback(
+    (command: CameraCommand, pose: CameraPose | null) => {
+      const viewport = viewportRef.current;
+      if (!viewport) return;
+      viewport.dataset.cameraCommand = command.type;
+      viewport.dataset.cameraCommandId = String(command.id);
+      if (pose) {
+        viewport.dataset.cameraPosition = pose.position.join(",");
+      } else {
+        delete viewport.dataset.cameraPosition;
+      }
+    },
+    [],
+  );
+
   return (
-    <div className="h-full min-h-[320px] w-full" data-testid="3d-viewport">
+    <div
+      ref={viewportRef}
+      className="h-full min-h-[320px] w-full"
+      data-testid="3d-viewport"
+    >
       <Canvas
         camera={{ position: [65, 52, 72], fov: 42, near: 0.1, far: 2000 }}
         dpr={[1, 1.75]}
@@ -229,7 +295,7 @@ export function MoldViewport(props: Props) {
         <directionalLight position={[40, 65, 80]} intensity={2.2} color="#fff5e8" />
         <directionalLight position={[-50, -30, 25]} intensity={0.9} color="#d2b99f" />
         <Suspense fallback={null}>
-          <MoldPreview {...props} />
+          <MoldPreview {...props} onCameraApplied={handleCameraApplied} />
         </Suspense>
         <Grid
           args={[280, 280]}

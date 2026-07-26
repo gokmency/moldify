@@ -9,12 +9,14 @@ const tetrahedronTriangles = [
   [[10, 0, 0], [0, 10, 0], [0, 0, 10]],
 ] as const;
 
-function asciiStl() {
+function asciiStl(scale = 1) {
   const facets = tetrahedronTriangles
     .map(
       (triangle) => `facet normal 0 0 1
 outer loop
-${triangle.map((point) => `vertex ${point.join(" ")}`).join("\n")}
+${triangle
+  .map((point) => `vertex ${point.map((value) => value * scale).join(" ")}`)
+  .join("\n")}
 endloop
 endfacet`,
     )
@@ -373,19 +375,50 @@ test("updates viewport layers and accepts camera controls", async ({
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
   await expectStudioReady(page);
+  await page.locator('[data-testid="file-input"]').setInputFiles({
+    name: "Opel_Mokka_Becher_Ablage_2_Fächer.stl",
+    mimeType: "model/stl",
+    buffer: asciiStl(40),
+  });
+  await expectStudioReady(page);
+
+  const sourcePanel = page.locator("aside").first();
+  await expect(sourcePanel).toHaveCSS("overflow-x", "hidden");
+  expect(
+    await sourcePanel.evaluate(
+      (panel) => panel.getBoundingClientRect().width <= 289,
+    ),
+  ).toBe(true);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
 
   const wireframe = page.locator('[data-testid="toggle-wireframe"]');
+  const viewport = page.locator('[data-testid="3d-viewport"]');
   await expect(wireframe).toHaveAttribute("aria-pressed", "false");
   await wireframe.click();
   await expect(wireframe).toHaveAttribute("aria-pressed", "true");
-  for (const name of [
-    "Fit model (F)",
-    "Isometric view (1)",
-    "Top view (2)",
-    "Reset view (R)",
-  ]) {
-    await page.getByRole("button", { name }).click();
-  }
+
+  await page.getByRole("button", { name: "Isometric view (1)" }).click();
+  await expect(viewport).toHaveAttribute("data-camera-command", "iso");
+  const isoPosition = await viewport.getAttribute("data-camera-position");
+  expect(isoPosition).toBeTruthy();
+
+  await page.getByRole("button", { name: "Top view (2)" }).click();
+  await expect(viewport).toHaveAttribute("data-camera-command", "top");
+  const topPosition = await viewport.getAttribute("data-camera-position");
+  expect(topPosition).toBeTruthy();
+  expect(topPosition).not.toBe(isoPosition);
+
+  await page.getByRole("button", { name: "Fit model (F)" }).click();
+  await expect(viewport).toHaveAttribute("data-camera-command", "fit");
+  await expect(viewport).not.toHaveAttribute("data-camera-position");
+
+  await page.getByRole("button", { name: "Reset view (R)" }).click();
+  await expect(viewport).toHaveAttribute("data-camera-command", "reset");
+  await expect(viewport).toHaveAttribute("data-camera-position", /.+/);
   expect(errors).toEqual([]);
 });
 

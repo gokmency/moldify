@@ -75,8 +75,16 @@ export function SourcePanel({
   };
 
   return (
-    <div className={cn("space-y-5", mobile ? "pb-6" : "p-4")}>
-      <section aria-labelledby={mobile ? "mobile-source-heading" : "source-heading"}>
+    <div
+      className={cn(
+        "min-w-0 space-y-5 overflow-hidden",
+        mobile ? "pb-6" : "p-4",
+      )}
+    >
+      <section
+        className="min-w-0"
+        aria-labelledby={mobile ? "mobile-source-heading" : "source-heading"}
+      >
         <div className="mb-3 flex items-center justify-between">
           <h2
             id={mobile ? "mobile-source-heading" : "source-heading"}
@@ -98,14 +106,14 @@ export function SourcePanel({
         {session.file ? (
           <Button
             variant="outline"
-            className="h-11 w-full justify-between bg-card px-3 text-xs"
+            className="h-11 min-w-0 w-full justify-between overflow-hidden bg-card px-3 text-xs"
             onClick={openFile}
           >
-            <span className="flex min-w-0 items-center gap-2">
+            <span className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
               <FileBox className="size-4 shrink-0 text-primary" />
               <span className="truncate">{session.file.name}</span>
             </span>
-            <span className="flex items-center gap-1.5 text-muted-foreground">
+            <span className="ml-2 flex shrink-0 items-center gap-1.5 text-muted-foreground">
               <RefreshCw className="size-3.5" />
               Replace
             </span>
@@ -154,7 +162,10 @@ export function SourcePanel({
 
       <Separator />
 
-      <section aria-labelledby={mobile ? "mobile-model-heading" : "model-heading"}>
+      <section
+        className="min-w-0"
+        aria-labelledby={mobile ? "mobile-model-heading" : "model-heading"}
+      >
         <h2
           id={mobile ? "mobile-model-heading" : "model-heading"}
           className="section-label mb-3"
@@ -173,7 +184,7 @@ export function SourcePanel({
             <Badge
               variant="outline"
               className={cn(
-                "h-6 rounded-md px-2 text-xs",
+                "h-6 shrink-0 rounded-md px-2 text-xs",
                 session.analysis?.watertight
                   ? "border-[var(--status-safe-border)] bg-[var(--status-safe-bg)] text-[var(--status-safe-foreground)]"
                   : "border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] text-[var(--status-warning-foreground)]",
@@ -216,7 +227,10 @@ export function SourcePanel({
       </section>
 
       {session.analysis && (
-        <section aria-labelledby={mobile ? "mobile-check-heading" : "check-heading"}>
+        <section
+          className="min-w-0"
+          aria-labelledby={mobile ? "mobile-check-heading" : "check-heading"}
+        >
           <h2
             id={mobile ? "mobile-check-heading" : "check-heading"}
             className="section-label mb-3"
@@ -238,7 +252,7 @@ export function SourcePanel({
                   className="flex gap-2 border-l-2 border-[var(--status-warning-border)] pl-3 text-xs leading-5 text-muted-foreground"
                 >
                   <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-[var(--status-warning-foreground)]" />
-                  {warning}
+                  <span className="min-w-0 break-words">{warning}</span>
                 </div>
               ))}
             </div>
