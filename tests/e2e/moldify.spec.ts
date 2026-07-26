@@ -382,11 +382,37 @@ test("updates viewport layers and accepts camera controls", async ({
   });
   await expectStudioReady(page);
 
-  const sourcePanel = page.locator("aside").first();
+  const sourcePanel = page.locator('[data-testid="source-panel-scroll"]');
+  const sourceName = page.locator('[data-testid="source-file-name"]');
+  const summaryName = page.locator('[data-testid="summary-file-name"]');
+  const replaceLabel = page.locator('[data-testid="replace-label"]');
   await expect(sourcePanel).toHaveCSS("overflow-x", "hidden");
+  await expect(sourceName).toBeVisible();
+  await expect(summaryName).toBeVisible();
+  await expect(replaceLabel).toBeVisible();
   expect(
     await sourcePanel.evaluate(
       (panel) => panel.getBoundingClientRect().width <= 289,
+    ),
+  ).toBe(true);
+  expect(
+    await sourcePanel.evaluate((panel) => {
+      const panelBounds = panel.getBoundingClientRect();
+      const targets = panel.querySelectorAll(
+        '[data-testid="source-file-name"], [data-testid="summary-file-name"], [data-testid="replace-label"]',
+      );
+      return [...targets].every((target) => {
+        const bounds = target.getBoundingClientRect();
+        return (
+          bounds.left >= panelBounds.left &&
+          bounds.right <= panelBounds.right
+        );
+      });
+    }),
+  ).toBe(true);
+  expect(
+    await sourceName.evaluate(
+      (name) => name.scrollWidth > name.clientWidth,
     ),
   ).toBe(true);
   expect(
@@ -397,6 +423,7 @@ test("updates viewport layers and accepts camera controls", async ({
 
   const wireframe = page.locator('[data-testid="toggle-wireframe"]');
   const viewport = page.locator('[data-testid="3d-viewport"]');
+  await expect(viewport).toHaveAttribute("data-depth-fog", "disabled");
   await expect(wireframe).toHaveAttribute("aria-pressed", "false");
   await wireframe.click();
   await expect(wireframe).toHaveAttribute("aria-pressed", "true");

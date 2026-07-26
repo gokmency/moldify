@@ -77,7 +77,7 @@ export function SourcePanel({
   return (
     <div
       className={cn(
-        "min-w-0 space-y-5 overflow-hidden",
+        "w-full min-w-0 space-y-5 overflow-hidden",
         mobile ? "pb-6" : "p-4",
       )}
     >
@@ -106,16 +106,27 @@ export function SourcePanel({
         {session.file ? (
           <Button
             variant="outline"
-            className="h-11 min-w-0 w-full justify-between overflow-hidden bg-card px-3 text-xs"
+            className="h-11 w-full min-w-0 overflow-hidden bg-card px-3 text-xs"
             onClick={openFile}
           >
-            <span className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-              <FileBox className="size-4 shrink-0 text-primary" />
-              <span className="truncate">{session.file.name}</span>
-            </span>
-            <span className="ml-2 flex shrink-0 items-center gap-1.5 text-muted-foreground">
-              <RefreshCw className="size-3.5" />
-              Replace
+            <span className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+              <span className="flex min-w-0 items-center gap-2 overflow-hidden">
+                <FileBox className="size-4 shrink-0 text-primary" />
+                <span
+                  className="block min-w-0 truncate text-left"
+                  title={session.file.name}
+                  data-testid="source-file-name"
+                >
+                  {session.file.name}
+                </span>
+              </span>
+              <span
+                className="flex shrink-0 items-center gap-1.5 text-muted-foreground"
+                data-testid="replace-label"
+              >
+                <RefreshCw className="size-3.5" />
+                Replace
+              </span>
             </span>
           </Button>
         ) : (
@@ -176,7 +187,11 @@ export function SourcePanel({
           <div className="flex items-start gap-3">
             <FileBox className="mt-0.5 size-4 shrink-0 text-primary" />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-medium" title={modelName}>
+              <p
+                className="truncate text-xs font-medium"
+                title={modelName}
+                data-testid="summary-file-name"
+              >
                 {modelName}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">{fileSize}</p>

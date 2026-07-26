@@ -3,7 +3,6 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { AlertTriangle, LoaderCircle } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ViewOptions } from "@/components/mold-viewport";
 import { MobileStudioNav } from "@/components/studio/mobile-studio-nav";
@@ -93,9 +92,12 @@ export function MoldifyStudio() {
 
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[288px_minmax(420px,1fr)_352px]">
         <aside className="panel hidden min-h-0 min-w-0 flex-col overflow-hidden border-r lg:flex">
-          <ScrollArea className="min-h-0 min-w-0 flex-1 overflow-hidden">
+          <div
+            className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto"
+            data-testid="source-panel-scroll"
+          >
             <SourcePanel session={session} />
-          </ScrollArea>
+          </div>
         </aside>
 
         <section className="relative min-h-0 overflow-hidden bg-[var(--viewport)]">

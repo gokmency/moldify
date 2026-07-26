@@ -283,6 +283,7 @@ export function MoldViewport(props: Props) {
       ref={viewportRef}
       className="h-full min-h-[320px] w-full"
       data-testid="3d-viewport"
+      data-depth-fog="disabled"
     >
       <Canvas
         camera={{ position: [65, 52, 72], fov: 42, near: 0.1, far: 2000 }}
@@ -290,7 +291,6 @@ export function MoldViewport(props: Props) {
         gl={{ antialias: true, alpha: true }}
       >
         <color attach="background" args={["#eee6da"]} />
-        <fog attach="fog" args={["#eee6da", 150, 430]} />
         <ambientLight intensity={1.35} />
         <directionalLight position={[40, 65, 80]} intensity={2.2} color="#fff5e8" />
         <directionalLight position={[-50, -30, 25]} intensity={0.9} color="#d2b99f" />
