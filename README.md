@@ -1,5 +1,3 @@
-Aşağıdaki metni doğrudan `README.md` olarak kullanabilirsin:
-
 <div align="center">
 
 # Moldify
