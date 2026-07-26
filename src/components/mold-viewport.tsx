@@ -77,12 +77,12 @@ function MoldPreview({ geometry, parameters, options }: Props) {
       <group rotation={[-Math.PI / 2, 0, 0]}>
         <mesh geometry={preview}>
           <meshStandardMaterial
-            color={new Color("#9ba7b4")}
-            roughness={0.38}
-            metalness={0.35}
+            color={new Color("#a9785c")}
+            roughness={0.55}
+            metalness={0.12}
             wireframe={options.wireframe}
           />
-          <Edges color="#d7e1e8" threshold={28} />
+          <Edges color="#684b3b" threshold={28} />
         </mesh>
 
         {options.mold && (
@@ -90,28 +90,28 @@ function MoldPreview({ geometry, parameters, options }: Props) {
             <mesh position={lowerPosition}>
               <boxGeometry args={halfSize} />
               <meshPhysicalMaterial
-                color="#16d49b"
+                color="#b98a68"
                 transparent
-                opacity={0.18}
-                roughness={0.2}
-                transmission={0.22}
+                opacity={0.24}
+                roughness={0.35}
+                transmission={0.12}
                 depthWrite={false}
                 side={DoubleSide}
               />
-              <Edges color="#21e6ab" threshold={15} />
+              <Edges color="#8f6248" threshold={15} />
             </mesh>
             <mesh position={upperPosition}>
               <boxGeometry args={halfSize} />
               <meshPhysicalMaterial
-                color="#45a8ff"
+                color="#d7b997"
                 transparent
-                opacity={0.15}
-                roughness={0.18}
-                transmission={0.25}
+                opacity={0.27}
+                roughness={0.34}
+                transmission={0.1}
                 depthWrite={false}
                 side={DoubleSide}
               />
-              <Edges color="#62b7ff" threshold={15} />
+              <Edges color="#a88260" threshold={15} />
             </mesh>
           </>
         )}
@@ -128,9 +128,9 @@ function MoldPreview({ geometry, parameters, options }: Props) {
           >
             <planeGeometry args={[maxDimension * 1.6, maxDimension * 1.6]} />
             <meshBasicMaterial
-              color="#f6b84a"
+              color="#b8955d"
               transparent
-              opacity={0.22}
+              opacity={0.18}
               side={DoubleSide}
               depthWrite={false}
             />
@@ -144,7 +144,7 @@ function MoldPreview({ geometry, parameters, options }: Props) {
               <cylinderGeometry
                 args={[parameters.pinDiameter / 2, parameters.pinDiameter / 2, 6, 24]}
               />
-              <meshStandardMaterial color="#f1b64b" metalness={0.25} roughness={0.3} />
+              <meshStandardMaterial color="#8a674d" metalness={0.12} roughness={0.48} />
             </mesh>
           ))}
 
@@ -153,7 +153,7 @@ function MoldPreview({ geometry, parameters, options }: Props) {
             <cylinderGeometry
               args={[parameters.pourDiameter / 2, parameters.pourDiameter / 2, moldSize[2] * 0.8, 32]}
             />
-            <meshStandardMaterial color="#fa8b5d" emissive="#6c2414" />
+            <meshStandardMaterial color="#b36f52" emissive="#5d2f20" emissiveIntensity={0.12} />
           </mesh>
         )}
         {options.channels &&
@@ -168,7 +168,7 @@ function MoldPreview({ geometry, parameters, options }: Props) {
                   18,
                 ]}
               />
-              <meshStandardMaterial color="#f9ca66" emissive="#5e4212" />
+              <meshStandardMaterial color="#a78654" emissive="#5a4527" emissiveIntensity={0.1} />
             </mesh>
           ))}
       </group>
@@ -184,11 +184,11 @@ export function MoldViewport(props: Props) {
         dpr={[1, 1.75]}
         gl={{ antialias: true, alpha: true }}
       >
-        <color attach="background" args={["#11151a"]} />
-        <fog attach="fog" args={["#11151a", 140, 430]} />
-        <ambientLight intensity={0.8} />
-        <directionalLight position={[40, 65, 80]} intensity={2.6} color="#d7ecff" />
-        <directionalLight position={[-50, -30, 25]} intensity={1.2} color="#35d5a2" />
+        <color attach="background" args={["#e9dfd2"]} />
+        <fog attach="fog" args={["#e9dfd2", 150, 430]} />
+        <ambientLight intensity={1.35} />
+        <directionalLight position={[40, 65, 80]} intensity={2.2} color="#fff5e8" />
+        <directionalLight position={[-50, -30, 25]} intensity={0.9} color="#d2b99f" />
         <Suspense fallback={null}>
           <MoldPreview {...props} />
         </Suspense>
@@ -197,10 +197,10 @@ export function MoldViewport(props: Props) {
           position={[0, -32, 0]}
           cellSize={5}
           cellThickness={0.55}
-          cellColor="#27313a"
+          cellColor="#d2c4b3"
           sectionSize={25}
           sectionThickness={0.9}
-          sectionColor="#384754"
+          sectionColor="#b9a58f"
           fadeDistance={240}
           fadeStrength={1}
           infiniteGrid
@@ -208,8 +208,8 @@ export function MoldViewport(props: Props) {
         <OrbitControls makeDefault enableDamping dampingFactor={0.08} />
         <GizmoHelper alignment="bottom-right" margin={[72, 62]}>
           <GizmoViewport
-            axisColors={["#ef6b6b", "#55ce82", "#599cff"]}
-            labelColor="#dfe7ed"
+            axisColors={["#b86d5f", "#73835f", "#6f8097"]}
+            labelColor="#f8f1e8"
           />
         </GizmoHelper>
       </Canvas>

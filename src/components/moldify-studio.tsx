@@ -102,9 +102,9 @@ function formatFileSize(bytes: number) {
 }
 
 function riskLabel(value: number) {
-  if (value < 0.3) return { label: "Low", className: "text-emerald-400" };
-  if (value < 0.6) return { label: "Medium", className: "text-amber-400" };
-  return { label: "High", className: "text-red-400" };
+  if (value < 0.3) return { label: "Low", className: "text-[#64734d]" };
+  if (value < 0.6) return { label: "Medium", className: "text-[#9a6a32]" };
+  return { label: "High", className: "text-destructive" };
 }
 
 export function MoldifyStudio() {
@@ -286,13 +286,13 @@ export function MoldifyStudio() {
     <main className="flex min-h-dvh flex-col bg-background text-foreground lg:h-dvh lg:overflow-hidden">
       <header className="panel z-20 flex h-14 shrink-0 items-center justify-between border-b px-3 lg:px-4">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="grid size-8 shrink-0 place-items-center rounded-md border border-emerald-400/30 bg-emerald-400/10">
-            <Layers3 className="size-4 text-emerald-400" />
+          <div className="grid size-8 shrink-0 place-items-center rounded-md border border-primary/25 bg-primary/8">
+            <Layers3 className="size-4 text-primary" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="text-sm font-semibold tracking-tight">Moldify</h1>
-              <Badge variant="outline" className="h-4 border-emerald-400/25 px-1.5 text-[9px] text-emerald-400">
+              <Badge variant="outline" className="h-4 border-primary/25 bg-primary/5 px-1.5 text-[9px] text-primary">
                 LOCAL MVP
               </Badge>
             </div>
@@ -303,7 +303,7 @@ export function MoldifyStudio() {
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="hidden gap-1.5 border-border/80 font-mono text-[10px] sm:flex">
-            <span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
+            <span className="size-1.5 rounded-full bg-[#71805a]" />
             Engine ready
           </Badge>
           <Tooltip>
@@ -339,11 +339,11 @@ export function MoldifyStudio() {
                     const dropped = event.dataTransfer.files[0];
                     if (dropped) onFile(dropped);
                   }}
-                  className="group flex w-full flex-col items-center rounded-lg border border-dashed border-border bg-background/35 px-4 py-5 text-center transition hover:border-emerald-400/55 hover:bg-emerald-400/[0.035]"
+                  className="group flex w-full flex-col items-center rounded-lg border border-dashed border-border bg-background/45 px-4 py-5 text-center transition hover:border-primary/50 hover:bg-primary/[0.035]"
                   data-testid="upload-dropzone"
                 >
-                  <span className="mb-3 grid size-10 place-items-center rounded-lg border bg-card shadow-sm transition group-hover:border-emerald-400/30">
-                    <Upload className="size-4 text-emerald-400" />
+                  <span className="mb-3 grid size-10 place-items-center rounded-lg border bg-card shadow-sm transition group-hover:border-primary/30">
+                    <Upload className="size-4 text-primary" />
                   </span>
                   <span className="text-xs font-medium">Drop a 3D model</span>
                   <span className="mt-1 text-[10px] text-muted-foreground">
@@ -372,11 +372,11 @@ export function MoldifyStudio() {
               <section aria-labelledby="model-details">
                 <div className="mb-2 flex items-center justify-between">
                   <p className="mono-label" id="model-details">Model details</p>
-                  {isAnalyzing && <LoaderCircle className="size-3 animate-spin text-emerald-400" />}
+                  {isAnalyzing && <LoaderCircle className="size-3 animate-spin text-primary" />}
                 </div>
                 <div className="rounded-lg border bg-background/30 p-3">
                   <div className="flex items-start gap-2.5">
-                    <FileBox className="mt-0.5 size-4 shrink-0 text-sky-400" />
+                    <FileBox className="mt-0.5 size-4 shrink-0 text-primary" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-xs font-medium" title={modelName}>{modelName}</p>
                       <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">{fileSize}</p>
@@ -386,8 +386,8 @@ export function MoldifyStudio() {
                       className={cn(
                         "h-5 px-1.5 text-[9px]",
                         analysis?.watertight
-                          ? "border-emerald-400/25 text-emerald-400"
-                          : "border-amber-400/25 text-amber-400",
+                          ? "border-[#71805a]/30 bg-[#71805a]/8 text-[#64734d]"
+                          : "border-[#a97845]/30 bg-[#a97845]/8 text-[#8d6034]",
                       )}
                     >
                       {analysis?.watertight ? "SOLID" : "CHECK"}
@@ -411,7 +411,7 @@ export function MoldifyStudio() {
                       </div>
                       <div>
                         <dt className="text-muted-foreground">Best split</dt>
-                        <dd className="mt-0.5 font-mono text-emerald-400">{analysis.orientation} axis</dd>
+                        <dd className="mt-0.5 font-mono text-primary">{analysis.orientation} axis</dd>
                       </div>
                     </dl>
                   )}
@@ -441,8 +441,8 @@ export function MoldifyStudio() {
               {!!analysis?.warnings.length && (
                 <div className="space-y-2">
                   {analysis.warnings.map((warning) => (
-                    <div key={warning} className="flex gap-2 rounded-md border border-amber-400/20 bg-amber-400/[0.045] p-2.5 text-[10px] leading-4 text-amber-100/80">
-                      <AlertTriangle className="mt-0.5 size-3 shrink-0 text-amber-400" />
+                    <div key={warning} className="flex gap-2 rounded-md border border-[#b18450]/25 bg-[#c9a46c]/10 p-2.5 text-[10px] leading-4 text-[#705033]">
+                      <AlertTriangle className="mt-0.5 size-3 shrink-0 text-[#9a6a32]" />
                       {warning}
                     </div>
                   ))}
@@ -452,7 +452,7 @@ export function MoldifyStudio() {
           </ScrollArea>
         </aside>
 
-        <section className="relative order-1 min-h-[500px] overflow-hidden border-b bg-[#11151a] lg:order-2 lg:min-h-0 lg:border-b-0">
+        <section className="relative order-1 min-h-[500px] overflow-hidden border-b bg-[#e9dfd2] lg:order-2 lg:min-h-0 lg:border-b-0">
           <div className="absolute inset-x-3 top-3 z-10 flex items-start justify-between gap-3">
             <div className="flex flex-wrap gap-1 rounded-lg border bg-background/75 p-1 shadow-xl backdrop-blur-lg">
               {tabs.map(({ id, label, icon: Icon }) => (
@@ -471,7 +471,7 @@ export function MoldifyStudio() {
                       aria-pressed={viewOptions[id]}
                       data-testid={`toggle-${id}`}
                     >
-                      <Icon className={cn("size-3", viewOptions[id] && "text-emerald-400")} />
+                      <Icon className={cn("size-3", viewOptions[id] && "text-primary")} />
                       <span className="hidden xl:inline">{label}</span>
                     </Button>
                   </TooltipTrigger>
@@ -502,7 +502,7 @@ export function MoldifyStudio() {
                   <section>
                     <div className="mb-3 flex items-center justify-between">
                       <p className="mono-label">Core geometry</p>
-                      <Button variant="ghost" size="sm" className="h-6 px-2 text-[9px] text-emerald-400" onClick={applyRecommendations}>
+                      <Button variant="ghost" size="sm" className="h-6 px-2 text-[9px] text-primary" onClick={applyRecommendations}>
                         <WandSparkles className="size-3" />
                         Apply auto
                       </Button>
@@ -524,7 +524,7 @@ export function MoldifyStudio() {
                         <div className="mb-2 flex items-center justify-between">
                           <label className="text-[11px] text-muted-foreground">Split direction</label>
                           {analysis && (
-                            <Badge variant="outline" className="h-4 px-1 text-[8px] text-emerald-400">
+                            <Badge variant="outline" className="h-4 border-primary/25 bg-primary/5 px-1 text-[8px] text-primary">
                               AUTO: {analysis.orientation}
                             </Badge>
                           )}
@@ -614,9 +614,9 @@ export function MoldifyStudio() {
                     />
                   </FeatureGroup>
 
-                  <div className="rounded-lg border border-emerald-400/15 bg-emerald-400/[0.035] p-3">
+                  <div className="rounded-lg border border-primary/15 bg-primary/[0.035] p-3">
                     <div className="flex items-start gap-2">
-                      <Sparkles className="mt-0.5 size-3.5 shrink-0 text-emerald-400" />
+                      <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
                       <div>
                         <p className="text-[11px] font-medium">Geometry recommendation</p>
                         <p className="mt-1 text-[10px] leading-4 text-muted-foreground">
@@ -643,7 +643,7 @@ export function MoldifyStudio() {
                           const complete = progress >= (index + 1) * 16;
                           return (
                             <div key={item} className="flex items-center gap-2 text-[10px]">
-                              <span className={cn("grid size-4 place-items-center rounded-full border", complete ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-400" : "text-muted-foreground")}>
+                              <span className={cn("grid size-4 place-items-center rounded-full border", complete ? "border-primary/35 bg-primary/8 text-primary" : "text-muted-foreground")}>
                                 {complete ? <Check className="size-2.5" /> : index + 1}
                               </span>
                               <span className={complete ? "text-foreground" : "text-muted-foreground"}>{item}</span>
@@ -676,7 +676,7 @@ export function MoldifyStudio() {
           </ScrollArea>
           <div className="border-t p-3">
             <Button
-              className="h-10 w-full bg-emerald-400 text-xs font-semibold text-emerald-950 hover:bg-emerald-300"
+              className="h-10 w-full bg-primary text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
               onClick={generate}
               disabled={isGenerating || isAnalyzing}
               data-testid="generate-button"
@@ -696,8 +696,8 @@ export function MoldifyStudio() {
       </div>
 
       <footer className="panel order-4 flex min-h-8 shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-t px-3 py-1.5 font-mono text-[9px] text-muted-foreground lg:px-4">
-        <span className="flex items-center gap-1.5 text-emerald-400">
-          <span className="size-1.5 rounded-full bg-emerald-400" />
+        <span className="flex items-center gap-1.5 text-primary">
+          <span className="size-1.5 rounded-full bg-[#71805a]" />
           {stage}
         </span>
         <span>CSG: manifold-3d / WASM</span>
@@ -783,7 +783,7 @@ function OutputFile({
   return (
     <div className="flex items-center gap-2 rounded-lg border bg-background/30 p-2.5">
       <div className="grid size-8 place-items-center rounded-md border bg-card">
-        <Box className="size-3.5 text-sky-400" />
+        <Box className="size-3.5 text-primary" />
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-[11px] font-medium">{name}</p>

@@ -28,13 +28,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} dark`}
+      className={`${geistSans.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
       <body className="antialiased">
         <TooltipProvider>
           {children}
-          <Toaster richColors theme="dark" position="top-center" />
+          <Toaster richColors theme="light" position="top-center" />
         </TooltipProvider>
       </body>
     </html>
