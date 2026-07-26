@@ -68,6 +68,7 @@ export function ViewToolbar({
                 onClick={() =>
                   onOptionsChange({ ...options, [id]: !options[id] })
                 }
+                aria-label={`${label} layer`}
                 aria-pressed={options[id]}
               >
                 <Icon className={cn("size-4", options[id] && "text-primary")} />
@@ -106,12 +107,13 @@ export function ViewToolbar({
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "h-8 gap-1.5 rounded-lg px-2.5 text-[11px]",
+                  "h-8 gap-1.5 rounded-lg px-2.5 text-xs",
                   options[id] && "bg-secondary text-foreground",
                 )}
                 onClick={() =>
                   onOptionsChange({ ...options, [id]: !options[id] })
                 }
+                aria-label={`${label} layer`}
                 aria-pressed={options[id]}
                 data-testid={`toggle-${id}`}
               >

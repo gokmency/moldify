@@ -44,7 +44,10 @@ import {
 } from "@/lib/mold-types";
 import type { MoldSession } from "@/hooks/use-mold-session";
 import type { SettingsPanelId } from "@/components/studio/studio-types";
-import { formatNumber } from "@/components/studio/studio-format";
+import {
+  formatNumber,
+  riskLevel,
+} from "@/components/studio/studio-format";
 import { cn } from "@/lib/utils";
 
 type Range = { min: number; max: number; step: number; unit: string };
@@ -64,7 +67,7 @@ function ParameterSlider({
     <div>
       <div className="mb-2.5 flex items-center justify-between">
         <label className="text-xs text-muted-foreground">{label}</label>
-        <span className="min-w-16 border-b px-1 pb-0.5 text-right font-mono text-[11px] font-medium">
+        <span className="min-w-16 border-b px-1 pb-0.5 text-right font-mono text-xs font-medium">
           {value}
           {range.unit}
         </span>
@@ -77,7 +80,7 @@ function ParameterSlider({
         onValueChange={([next]) => onChange(next)}
         aria-label={label}
       />
-      <div className="mt-1.5 flex justify-between font-mono text-[10px] text-muted-foreground">
+      <div className="mt-1.5 flex justify-between font-mono text-xs text-muted-foreground">
         <span>
           {range.min}
           {range.unit}
@@ -97,8 +100,8 @@ function SplitDirection({ session }: { session: MoldSession }) {
       <div className="mb-2 flex items-center justify-between">
         <label className="text-xs text-muted-foreground">Split direction</label>
         {session.analysis && (
-          <span className="text-[10px] font-medium text-primary">
-            Suggested {session.analysis.orientation}
+          <span className="text-xs font-medium text-primary">
+            Recommended {session.analysis.orientation}
           </span>
         )}
       </div>
@@ -138,28 +141,28 @@ function SuggestedSetup({ session }: { session: MoldSession }) {
     );
   }
   const recommendation = session.analysis.recommendations;
+  const risk = riskLevel(session.analysis.undercutRisk);
   return (
-    <section className="border-y py-4" aria-labelledby="suggested-setup">
+    <section className="border-y py-4" aria-labelledby="recommended-setup">
       <div className="flex items-start gap-3">
         <Info className="mt-0.5 size-4 shrink-0 text-primary" />
         <div className="min-w-0 flex-1">
-          <h3 id="suggested-setup" className="text-xs font-semibold">
-            Suggested setup
+          <h3 id="recommended-setup" className="text-xs font-semibold">
+            Recommended
           </h3>
-          <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
-            {session.analysis.orientation}-axis scored{" "}
-            {session.analysis.orientationScores[session.analysis.orientation]}
-            /100 for release. Use {recommendation.wallThickness} mm walls and{" "}
-            {recommendation.clearance} mm clearance.
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            Split {session.analysis.orientation} · {risk.label.toLowerCase()}{" "}
+            undercut risk · {recommendation.wallThickness} mm walls ·{" "}
+            {recommendation.clearance} mm clearance
           </p>
           <Button
             variant="outline"
             size="sm"
-            className="mt-3 h-8 text-[11px]"
+            className="mt-3 h-9 text-xs"
             onClick={session.applyRecommendations}
           >
             <Settings2 className="size-3.5" />
-            Apply suggestion
+            Apply
           </Button>
         </div>
       </div>
@@ -259,7 +262,7 @@ function FeatureSection({
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="text-xs font-semibold">{title}</h3>
-          <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
             {description}
           </p>
         </div>
@@ -351,7 +354,7 @@ function OutputFile({
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs font-medium">{name}</p>
-        <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
+        <p className="mt-0.5 font-mono text-xs text-muted-foreground">
           {detail}
         </p>
       </div>
@@ -371,15 +374,19 @@ function OutputFile({
 
 function ExportControls({ session }: { session: MoldSession }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" aria-live="polite">
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="section-label">Generation job</h2>
-          <span className="font-mono text-[11px] text-muted-foreground">
+          <span className="font-mono text-xs text-muted-foreground">
             {session.progress}%
           </span>
         </div>
-        <Progress value={session.progress} className="h-1.5" />
+        <Progress
+          value={session.progress}
+          className="h-1.5"
+          aria-label="Generation progress"
+        />
         <div className="mt-4 space-y-3">
           {GENERATION_STAGES.map((item) => {
             const complete = session.progress >= item.progress;
@@ -420,7 +427,7 @@ function ExportControls({ session }: { session: MoldSession }) {
       </section>
 
       {session.isStale && (
-        <div className="flex gap-2 border-l-2 border-[var(--status-warning-border)] pl-3 text-[11px] leading-4 text-muted-foreground">
+        <div className="flex gap-2 border-l-2 border-[var(--status-warning-border)] pl-3 text-xs leading-5 text-muted-foreground">
           <AlertCircle className="mt-0.5 size-3.5 shrink-0 text-[var(--status-warning-foreground)]" />
           Settings changed after the last generation. Regenerate before
           downloading updated files.
@@ -446,7 +453,7 @@ function ExportControls({ session }: { session: MoldSession }) {
               session.download(session.generated!.lower, "Lower Mold.stl")
             }
           />
-          <p className="mt-3 font-mono text-[10px] text-muted-foreground">
+          <p className="mt-3 font-mono text-xs text-muted-foreground">
             Envelope{" "}
             {session.generated.stats.moldSize
               .map((value) => formatNumber(value))
@@ -458,11 +465,15 @@ function ExportControls({ session }: { session: MoldSession }) {
         <div className="border-y py-5 text-center">
           <SlidersHorizontal className="mx-auto size-5 text-muted-foreground" />
           <p className="mt-2 text-xs font-medium">No mold generated yet</p>
-          <p className="mt-1 text-[11px] text-muted-foreground">
+          <p className="mt-1 text-xs text-muted-foreground">
             Review the setup, then create both STL files locally.
           </p>
         </div>
       )}
+
+      <p className="border-t pt-4 text-xs leading-5 text-muted-foreground">
+        Verify dimensions, fit and manufacturability before fabrication.
+      </p>
     </div>
   );
 }
@@ -490,16 +501,18 @@ function GenerateAction({
         <Button
           className="h-11 w-full text-xs font-semibold"
           onClick={() => void onGenerate()}
-          disabled={session.status === "analyzing"}
+          disabled={
+            session.status === "analyzing" ||
+            session.status === "error" ||
+            session.status === "unsupported" ||
+            !session.analysis
+          }
           data-testid="generate-button"
         >
           <RotateCw className="size-4" />
           {session.generated ? "Regenerate mold" : "Generate mold"}
         </Button>
       )}
-      <p className="mt-2 text-center text-[10px] text-muted-foreground">
-        Processed on this device · no cloud upload
-      </p>
     </div>
   );
 }
@@ -526,13 +539,13 @@ export function SettingsPanel({
       >
         <div className="px-3 pt-3">
           <TabsList className="grid h-9 w-full grid-cols-3 bg-background">
-            <TabsTrigger value="setup" className="text-[11px]">
+            <TabsTrigger value="setup" className="text-xs">
               Setup
             </TabsTrigger>
-            <TabsTrigger value="features" className="text-[11px]">
+            <TabsTrigger value="features" className="text-xs">
               Features
             </TabsTrigger>
-            <TabsTrigger value="export" className="text-[11px]">
+            <TabsTrigger value="export" className="text-xs">
               Export
             </TabsTrigger>
           </TabsList>

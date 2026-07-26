@@ -8,6 +8,7 @@ import {
 } from "@/lib/geometry-worker-protocol";
 import { generateMold } from "@/lib/manifold-engine";
 import { analyzeGeometry } from "@/lib/mesh-analysis";
+import { parseMeshBuffer } from "@/lib/mesh-loader";
 
 const worker = self as DedicatedWorkerGlobalScope;
 
@@ -22,6 +23,19 @@ function geometryFromPositions(positions: ArrayBuffer) {
   return geometry;
 }
 
+function positionsFromGeometry(geometry: BufferGeometry) {
+  const nonIndexed = geometry.index ? geometry.toNonIndexed() : geometry;
+  const position = nonIndexed.getAttribute("position");
+  if (!position) throw new Error("Mesh has no vertex positions.");
+  const positions = new Float32Array(position.count * 3);
+  for (let index = 0; index < position.count; index += 1) {
+    positions[index * 3] = position.getX(index);
+    positions[index * 3 + 1] = position.getY(index);
+    positions[index * 3 + 2] = position.getZ(index);
+  }
+  return positions.buffer;
+}
+
 function send(message: GeometryWorkerResponse, transfer: Transferable[] = []) {
   worker.postMessage(message, transfer);
 }
@@ -29,17 +43,26 @@ function send(message: GeometryWorkerResponse, transfer: Transferable[] = []) {
 worker.onmessage = async (event: MessageEvent<GeometryWorkerRequest>) => {
   const request = event.data;
   try {
-    const geometry = geometryFromPositions(request.positions);
     if (request.type === "analyze") {
-      send({
-        type: "analysis",
-        jobId: request.jobId,
-        result: analyzeGeometry(geometry),
-      });
+      const geometry =
+        request.source.kind === "file"
+          ? await parseMeshBuffer(request.source.name, request.source.buffer)
+          : geometryFromPositions(request.source.positions);
+      const positions = positionsFromGeometry(geometry);
+      send(
+        {
+          type: "analysis",
+          jobId: request.jobId,
+          result: analyzeGeometry(geometry),
+          positions,
+        },
+        [positions],
+      );
       geometry.dispose();
       return;
     }
 
+    const geometry = geometryFromPositions(request.positions);
     const result = await generateMold(
       geometry,
       request.parameters,

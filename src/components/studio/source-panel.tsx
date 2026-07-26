@@ -44,7 +44,11 @@ function RiskRow({
           {risk.label}
         </span>
       </div>
-      <Progress value={value * 100} className="h-1.5" />
+      <Progress
+        value={value * 100}
+        className="h-1.5"
+        aria-label={`${label}: ${risk.label}`}
+      />
     </div>
   );
 }
@@ -81,7 +85,10 @@ export function SourcePanel({
             Source model
           </h2>
           {isAnalyzing && (
-            <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span
+              className="flex items-center gap-1.5 text-xs text-muted-foreground"
+              aria-live="polite"
+            >
               <LoaderCircle className="size-3.5 animate-spin" />
               Checking
             </span>
@@ -116,7 +123,7 @@ export function SourcePanel({
               <Upload className="size-4 text-primary" />
             </span>
             <span className="text-xs font-medium">Drop a 3D model</span>
-            <span className="mt-1 text-[11px] text-muted-foreground">
+            <span className="mt-1 text-xs text-muted-foreground">
               STL, OBJ, GLB or 3MF · up to 50 MB
             </span>
           </button>
@@ -133,14 +140,16 @@ export function SourcePanel({
           }}
           data-testid="file-input"
         />
-        <Button
-          variant="secondary"
-          className="mt-2 h-10 w-full text-xs"
-          onClick={() => void session.useDemo()}
-        >
-          <Box className="size-3.5" />
-          Use demo part
-        </Button>
+        {session.file && (
+          <Button
+            variant="secondary"
+            className="mt-2 h-10 w-full text-xs"
+            onClick={() => void session.useDemo()}
+          >
+            <Box className="size-3.5" />
+            Reset to demo
+          </Button>
+        )}
       </section>
 
       <Separator />
@@ -159,12 +168,12 @@ export function SourcePanel({
               <p className="truncate text-xs font-medium" title={modelName}>
                 {modelName}
               </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">{fileSize}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{fileSize}</p>
             </div>
             <Badge
               variant="outline"
               className={cn(
-                "h-6 rounded-md px-2 text-[10px]",
+                "h-6 rounded-md px-2 text-xs",
                 session.analysis?.watertight
                   ? "border-[var(--status-safe-border)] bg-[var(--status-safe-bg)] text-[var(--status-safe-foreground)]"
                   : "border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] text-[var(--status-warning-foreground)]",
@@ -176,27 +185,27 @@ export function SourcePanel({
           {session.analysis && (
             <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
               <div>
-                <dt className="text-[11px] text-muted-foreground">Dimensions</dt>
-                <dd className="mt-0.5 font-mono text-[10px]">
+                <dt className="text-xs text-muted-foreground">Dimensions</dt>
+                <dd className="mt-0.5 font-mono text-xs">
                   {session.analysis.bounds.size
                     .map((value) => formatNumber(value))
                     .join(" × ")}
                 </dd>
               </div>
               <div>
-                <dt className="text-[11px] text-muted-foreground">Triangles</dt>
-                <dd className="mt-0.5 font-mono text-[11px]">
+                <dt className="text-xs text-muted-foreground">Triangles</dt>
+                <dd className="mt-0.5 font-mono text-xs">
                   {formatNumber(session.analysis.triangleCount, 0)}
                 </dd>
               </div>
               <div>
-                <dt className="text-[11px] text-muted-foreground">Mesh quality</dt>
-                <dd className="mt-0.5 font-mono text-[11px]">
+                <dt className="text-xs text-muted-foreground">Mesh quality</dt>
+                <dd className="mt-0.5 font-mono text-xs">
                   {Math.round(session.analysis.manifoldScore * 100)}%
                 </dd>
               </div>
               <div>
-                <dt className="text-[11px] text-muted-foreground">Best split</dt>
+                <dt className="text-xs text-muted-foreground">Best split</dt>
                 <dd className="mt-0.5 font-medium text-primary">
                   {session.analysis.orientation} axis
                 </dd>
@@ -226,7 +235,7 @@ export function SourcePanel({
               {session.analysis.warnings.map((warning) => (
                 <div
                   key={warning}
-                  className="flex gap-2 border-l-2 border-[var(--status-warning-border)] pl-3 text-[11px] leading-4 text-muted-foreground"
+                  className="flex gap-2 border-l-2 border-[var(--status-warning-border)] pl-3 text-xs leading-5 text-muted-foreground"
                 >
                   <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-[var(--status-warning-foreground)]" />
                   {warning}

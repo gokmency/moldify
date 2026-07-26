@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { Box, LoaderCircle } from "lucide-react";
+import { AlertTriangle, LoaderCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ViewOptions } from "@/components/mold-viewport";
@@ -10,7 +10,6 @@ import { MobileStudioNav } from "@/components/studio/mobile-studio-nav";
 import { SettingsPanel } from "@/components/studio/settings-panel";
 import { SourcePanel } from "@/components/studio/source-panel";
 import { StudioHeader } from "@/components/studio/studio-header";
-import { StudioStatusBar } from "@/components/studio/studio-status-bar";
 import type {
   CameraCommand,
   CameraCommandType,
@@ -83,13 +82,14 @@ export function MoldifyStudio() {
   }, []);
 
   const handleGenerate = async () => {
+    setActivePanel("export");
     const complete = await session.generate();
-    if (complete) setActivePanel("export");
+    if (!complete) return;
   };
 
   return (
     <main className="flex h-dvh min-h-[560px] flex-col overflow-hidden bg-background text-foreground">
-      <StudioHeader session={session} />
+      <StudioHeader />
 
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[288px_minmax(420px,1fr)_352px]">
         <aside className="panel hidden min-h-0 flex-col border-r lg:flex">
@@ -106,26 +106,30 @@ export function MoldifyStudio() {
               onCameraCommand={issueCameraCommand}
             />
           </div>
-          <div className="absolute right-3 top-3 z-10 hidden rounded-lg border bg-card px-2.5 py-1.5 text-[10px] text-muted-foreground lg:block">
-            F fit · R reset · 1 iso · 2 top
-          </div>
-
-          <MoldViewport
-            geometry={session.geometry}
-            parameters={session.parameters}
-            options={viewOptions}
-            cameraCommand={cameraCommand}
-          />
-
-          <div className="pointer-events-none absolute bottom-4 left-4 z-10 hidden items-center gap-2 rounded-lg border bg-card px-3 py-2 text-[11px] shadow-sm sm:flex">
-            <Box className="size-3.5 text-primary" />
-            <span className="max-w-56 truncate font-medium">
-              {session.file?.name ?? "Moldify demo part"}
-            </span>
-          </div>
-          <div className="pointer-events-none absolute bottom-4 right-4 z-10 rounded-lg border bg-card px-3 py-2 text-[10px] text-muted-foreground lg:hidden">
-            Drag to orbit · pinch to zoom
-          </div>
+          {session.status === "unsupported" ? (
+            <div
+              className="grid h-full place-items-center p-6"
+              data-testid="unsupported-browser"
+            >
+              <div className="max-w-sm text-center">
+                <AlertTriangle className="mx-auto size-6 text-primary" />
+                <h2 className="mt-3 text-sm font-semibold">
+                  This browser cannot run Moldify
+                </h2>
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                  Moldify needs WebGL, WebAssembly, Web Workers and browser file
+                  downloads. Try the latest Chrome, Edge, Firefox or Safari.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <MoldViewport
+              geometry={session.geometry}
+              parameters={session.parameters}
+              options={viewOptions}
+              cameraCommand={cameraCommand}
+            />
+          )}
         </section>
 
         <aside className="panel hidden min-h-0 flex-col border-l lg:flex">
@@ -138,7 +142,6 @@ export function MoldifyStudio() {
         </aside>
       </div>
 
-      <StudioStatusBar session={session} />
       <MobileStudioNav
         session={session}
         viewOptions={viewOptions}

@@ -13,7 +13,33 @@ import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { SUPPORTED_EXTENSIONS } from "@/lib/mold-types";
 
 export const MAX_LOCAL_FILE_BYTES = 50 * 1024 * 1024;
-export const MAX_FUNCTION_PAYLOAD_BYTES = 4 * 1024 * 1024;
+export const MAX_TRIANGLE_COUNT = 1_000_000;
+export const MAX_3MF_XML_BYTES = 25 * 1024 * 1024;
+export const MAX_ABSOLUTE_COORDINATE = 1_000_000;
+
+export function assertTriangleCount(count: number) {
+  if (!Number.isInteger(count) || count < 1) {
+    throw new Error("Mesh does not contain complete triangles.");
+  }
+  if (count > MAX_TRIANGLE_COUNT) {
+    throw new Error("Mesh exceeds the 1,000,000 triangle processing limit.");
+  }
+}
+
+export function assert3mfXmlSize(byteLength: number) {
+  if (byteLength > MAX_3MF_XML_BYTES) {
+    throw new Error("3MF model XML exceeds the 25 MB processing limit.");
+  }
+}
+
+export function assertCoordinate(value: number) {
+  if (!Number.isFinite(value)) {
+    throw new Error("Mesh contains invalid coordinate values.");
+  }
+  if (Math.abs(value) > MAX_ABSOLUTE_COORDINATE) {
+    throw new Error("Mesh coordinates exceed the supported size range.");
+  }
+}
 
 export function extensionOf(name: string) {
   return name.toLowerCase().split(".").pop() ?? "";
@@ -73,6 +99,7 @@ function mergeNonIndexed(geometries: BufferGeometry[]) {
     const nonIndexed = geometry.index ? geometry.toNonIndexed() : geometry;
     const position = nonIndexed.getAttribute("position");
     if (!position) continue;
+    assertTriangleCount((positions.length + position.count * 3) / 9);
     for (let i = 0; i < position.count; i += 1) {
       positions.push(position.getX(i), position.getY(i), position.getZ(i));
     }
@@ -85,6 +112,7 @@ function mergeNonIndexed(geometries: BufferGeometry[]) {
 
 function normalizeGeometry(geometry: BufferGeometry) {
   const output = geometry.index ? geometry.toNonIndexed() : geometry.clone();
+  validateGeometryPositions(output);
   output.computeBoundingBox();
   output.computeVertexNormals();
   if (!output.boundingBox) throw new Error("Unable to calculate model bounds.");
@@ -99,8 +127,10 @@ async function parse3mf(buffer: ArrayBuffer) {
   const zip = await JSZip.loadAsync(buffer);
   const modelPath = Object.keys(zip.files).find((path) => path.toLowerCase().endsWith(".model"));
   if (!modelPath) throw new Error("3MF archive has no model XML.");
-  const xml = await zip.file(modelPath)?.async("text");
-  if (!xml) throw new Error("3MF model XML is empty.");
+  const xmlBytes = await zip.file(modelPath)?.async("uint8array");
+  if (!xmlBytes?.byteLength) throw new Error("3MF model XML is empty.");
+  assert3mfXmlSize(xmlBytes.byteLength);
+  const xml = new TextDecoder().decode(xmlBytes);
   const vertices: Array<[number, number, number]> = [];
   const attribute = (source: string, name: string) => {
     const found = source.match(new RegExp(`\\b${name}="([^"]+)"`, "i"));
@@ -113,12 +143,15 @@ async function parse3mf(buffer: ArrayBuffer) {
     const y = attribute(match[1], "y");
     const z = attribute(match[1], "z");
     if (x !== undefined && y !== undefined && z !== undefined) {
-      vertices.push([Number(x), Number(y), Number(z)]);
+      const vertex: [number, number, number] = [Number(x), Number(y), Number(z)];
+      validateCoordinateTuple(vertex);
+      vertices.push(vertex);
     }
   }
   const positions: number[] = [];
   const trianglePattern = /<triangle\b([^>]*)\/?>/gi;
   while ((match = trianglePattern.exec(xml))) {
+    assertTriangleCount(positions.length / 9 + 1);
     const indices = ["v1", "v2", "v3"].map((name) => Number(attribute(match![1], name)));
     for (const index of indices) {
       const vertex = vertices[index];
@@ -130,4 +163,26 @@ async function parse3mf(buffer: ArrayBuffer) {
   const geometry = new BufferGeometry();
   geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
   return normalizeGeometry(geometry);
+}
+
+function validateCoordinateTuple(values: readonly number[]) {
+  for (const value of values) {
+    assertCoordinate(value);
+  }
+}
+
+function validateGeometryPositions(geometry: BufferGeometry) {
+  const position = geometry.getAttribute("position");
+  if (!position || position.count < 3 || position.count % 3 !== 0) {
+    throw new Error("Mesh does not contain complete triangles.");
+  }
+  const triangleCount = position.count / 3;
+  assertTriangleCount(triangleCount);
+  for (let index = 0; index < position.count; index += 1) {
+    validateCoordinateTuple([
+      position.getX(index),
+      position.getY(index),
+      position.getZ(index),
+    ]);
+  }
 }

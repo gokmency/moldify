@@ -14,7 +14,16 @@ export type GeometryWorkerRequest =
   | {
       type: "analyze";
       jobId: string;
-      positions: ArrayBuffer;
+      source:
+        | {
+            kind: "positions";
+            positions: ArrayBuffer;
+          }
+        | {
+            kind: "file";
+            name: string;
+            buffer: ArrayBuffer;
+          };
     }
   | {
       type: "generate";
@@ -28,6 +37,7 @@ export type GeometryWorkerResponse =
       type: "analysis";
       jobId: string;
       result: AnalysisResult;
+      positions: ArrayBuffer;
     }
   | {
       type: "progress";

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
@@ -31,22 +30,10 @@ const items = [
 ] as const;
 
 const copy = {
-  model: {
-    title: "Model",
-    description: "Source geometry and manufacturability checks.",
-  },
-  view: {
-    title: "View",
-    description: "Visible layers and camera position.",
-  },
-  setup: {
-    title: "Mold setup",
-    description: "Suggested geometry and mold features.",
-  },
-  export: {
-    title: "Export",
-    description: "Local generation progress and STL downloads.",
-  },
+  model: "Model",
+  view: "View",
+  setup: "Mold setup",
+  export: "Export",
 };
 
 export function MobileStudioNav({
@@ -83,7 +70,7 @@ export function MobileStudioNav({
             key={id}
             variant="ghost"
             className={cn(
-              "h-full min-h-11 flex-col gap-1 rounded-none text-[10px] text-muted-foreground",
+              "h-full min-h-11 flex-col gap-1 rounded-none text-xs text-muted-foreground",
               panel === id && open && "text-primary",
             )}
             onClick={() => {
@@ -102,8 +89,7 @@ export function MobileStudioNav({
           className="max-h-[82dvh] rounded-t-2xl px-0 pb-0"
         >
           <SheetHeader className="border-b px-5 pb-4 text-left">
-            <SheetTitle>{copy[panel].title}</SheetTitle>
-            <SheetDescription>{copy[panel].description}</SheetDescription>
+            <SheetTitle>{copy[panel]}</SheetTitle>
           </SheetHeader>
           <ScrollArea className="max-h-[calc(82dvh-5.5rem)]">
             <div className="px-5 pt-5">

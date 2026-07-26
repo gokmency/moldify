@@ -1,6 +1,6 @@
 # Moldify
 
-Moldify is a local-first production studio for turning a 3D model
+Moldify is a local-first public beta for turning a 3D model
 into a printable two-part mold. The MVP has no accounts, billing, cloud object
 storage, or persistent project history. The main studio analyzes models and
 generates STL files directly in the browser; uploaded geometry is not sent to
@@ -13,14 +13,15 @@ the server or retained.
   region risk, warnings, and deterministic mold recommendations.
 - Displays the part, translucent mold halves, split plane, alignment pins,
   pour channel, vents, wireframe, and section preview in an interactive 3D view.
-- Generates a two-part mold using `manifold-3d` (Node + WASM) boolean operations.
+- Generates a two-part mold using `manifold-3d` WASM boolean operations in a
+  browser Worker.
 - Uses `three-mesh-bvh` for accelerated ray-based risk analysis.
 - Exports separate `Upper Mold.stl` and `Lower Mold.stl` files.
 - Stores mold preferences only in local browser storage.
 
 ## Local development
 
-Requirements: Node.js 22+ and npm.
+Requirements: Node.js 24 and npm.
 
 ```bash
 npm install
@@ -36,11 +37,13 @@ npm run lint
 npm run typecheck
 npm run test
 npm run build
+npm run test:e2e
 ```
 
-Unit tests cover parameter bounds, deterministic analysis, non-empty separate
-STL outputs, and pin-dependent geometry. Route tests cover the demo analysis
-contract and unsupported file rejection.
+Unit tests cover parameter bounds, parser limits, deterministic analysis,
+browser capabilities, non-empty separate STL outputs, and pin-dependent
+geometry. Playwright verifies the local-first workflow in desktop and mobile
+browsers.
 
 ## Production
 
@@ -63,17 +66,16 @@ variables:
 
 1. Import `gokmency/moldify` from the Vercel dashboard.
 2. Keep the detected framework as **Next.js** and the root directory as `.`.
-3. Deploy. Vercel uses Node.js 22, `npm ci`, and `npm run build` from the
+3. Deploy. Vercel uses Node.js 24, `npm ci`, and `npm run build` from the
    committed configuration.
 
 Pushes to `main` create production deployments after the Git repository is
 connected. Pull requests and non-production branches create preview deployments.
 
-The interactive studio runs geometry analysis and mold generation locally in
-the browser, so normal uploads do not pass through Vercel Functions. The
-`/api/analyze` and `/api/generate` compatibility endpoints remain available for
-small integrations; their payloads are capped at 4 MB to stay below Vercel's
-Function request and response limits.
+The interactive studio parses files, analyzes geometry, and generates molds in
+a browser Worker. Moldify does not expose server-side geometry endpoints.
+Anonymous Vercel page and performance measurements never include file names,
+geometry, or mold parameters.
 
 ## Use
 
@@ -119,7 +121,10 @@ Function request and response limits.
 - Draft angle is analyzed and recorded in the MVP settings; full per-face draft
   deformation is a future geometry pass.
 - The browser studio accepts files up to 50 MB to protect the local-first
-  session from memory spikes. Hosted API compatibility routes use a 4 MB limit.
+  session from memory spikes.
+- Meshes are limited to 1,000,000 triangles. Extracted 3MF model XML is limited
+  to 25 MB, and invalid or extreme coordinate values are rejected.
+- WebGL, WebAssembly, Web Workers, and browser file downloads are required.
 
 The repository includes `public/demo-part.stl` plus a richer procedural demo
 used by the application and geometry tests.

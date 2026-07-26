@@ -6,12 +6,13 @@ import {
   Float32BufferAttribute,
 } from "three";
 import { toast } from "sonner";
+import { detectBrowserSupport } from "@/lib/browser-capabilities";
 import { createDemoBufferGeometry } from "@/lib/demo-geometry";
 import type {
   GeometryWorkerRequest,
   GeometryWorkerResponse,
 } from "@/lib/geometry-worker-protocol";
-import { parseMeshBuffer, validateMeshFile } from "@/lib/mesh-loader";
+import { validateMeshFile } from "@/lib/mesh-loader";
 import {
   DEFAULT_PARAMETERS,
   type AnalysisResult,
@@ -24,7 +25,8 @@ export type SessionStatus =
   | "ready"
   | "generating"
   | "generated"
-  | "error";
+  | "error"
+  | "unsupported";
 
 export type GeneratedFiles = {
   upper: Blob;
@@ -56,27 +58,15 @@ function transferablePositions(geometry: BufferGeometry) {
   return positions.buffer;
 }
 
-function geometryForViewport(geometry: BufferGeometry) {
-  const clone = geometry.clone();
-  const position = clone.getAttribute("position");
-  if (position && !(position instanceof Float32BufferAttribute)) {
-    clone.setAttribute(
-      "position",
-      new Float32BufferAttribute(
-        Float32Array.from({ length: position.count * 3 }, (_, index) => {
-          const vertex = Math.floor(index / 3);
-          const axis = index % 3;
-          return axis === 0
-            ? position.getX(vertex)
-            : axis === 1
-              ? position.getY(vertex)
-              : position.getZ(vertex);
-        }),
-        3,
-      ),
-    );
-  }
-  return clone;
+function geometryFromPositions(positions: ArrayBuffer) {
+  const geometry = new BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new Float32BufferAttribute(new Float32Array(positions), 3),
+  );
+  geometry.computeBoundingBox();
+  geometry.computeVertexNormals();
+  return geometry;
 }
 
 export function useMoldSession() {
@@ -92,7 +82,6 @@ export function useMoldSession() {
   const [stage, setStage] = useState("Preparing studio");
   const [generated, setGenerated] = useState<GeneratedFiles | null>(null);
   const [isStale, setIsStale] = useState(false);
-  const [sessionId, setSessionId] = useState("LOCAL");
   const workerRef = useRef<Worker | null>(null);
   const pendingJobs = useRef(new Map<string, PendingJob>());
   const activeJobId = useRef<string | null>(null);
@@ -105,6 +94,7 @@ export function useMoldSession() {
     nextWorker.onmessage = (event: MessageEvent<GeometryWorkerResponse>) => {
       const message = event.data;
       if (message.type === "progress") {
+        if (message.jobId !== activeJobId.current) return;
         setProgress(message.progress);
         setStage(message.label);
         return;
@@ -134,13 +124,22 @@ export function useMoldSession() {
       new Promise<GeometryWorkerResponse>((resolve, reject) => {
         const worker = workerRef.current ?? createWorker();
         pendingJobs.current.set(request.jobId, { resolve, reject });
-        worker.postMessage(request, [request.positions]);
+        const transfer =
+          request.type === "generate"
+            ? [request.positions]
+            : request.source.kind === "file"
+              ? [request.source.buffer]
+              : [request.source.positions];
+        worker.postMessage(request, transfer);
       }),
     [createWorker],
   );
 
-  const analyzeGeometryInWorker = useCallback(
-    async (nextGeometry: BufferGeometry) => {
+  const analyzeSourceInWorker = useCallback(
+    async (
+      source: Extract<GeometryWorkerRequest, { type: "analyze" }>["source"],
+      nextFile: File | null,
+    ) => {
       setStatus("analyzing");
       setStage("Inspecting geometry");
       setProgress(0);
@@ -150,11 +149,17 @@ export function useMoldSession() {
         const message = await requestWorker({
           type: "analyze",
           jobId,
-          positions: transferablePositions(nextGeometry),
+          source,
         });
         if (message.type !== "analysis") {
           throw new Error("Unexpected analysis response.");
         }
+        if (activeJobId.current !== jobId) return false;
+        setGeometry((current) => {
+          current.dispose();
+          return geometryFromPositions(message.positions);
+        });
+        setFile(nextFile);
         setAnalysis(message.result);
         setParameters((current) => ({
           ...current,
@@ -162,13 +167,15 @@ export function useMoldSession() {
         }));
         setStatus("ready");
         setStage("Model ready");
-        toast.success("Geometry check complete");
+        return true;
       } catch (error) {
+        if (activeJobId.current !== jobId) return false;
         setStatus("error");
         setStage("Analysis needs attention");
         toast.error(error instanceof Error ? error.message : "Analysis failed.");
+        return false;
       } finally {
-        activeJobId.current = null;
+        if (activeJobId.current === jobId) activeJobId.current = null;
       }
     },
     [requestWorker],
@@ -176,7 +183,6 @@ export function useMoldSession() {
 
   useEffect(() => {
     const jobs = pendingJobs.current;
-    setSessionId(crypto.randomUUID().slice(0, 6).toUpperCase());
     const saved = localStorage.getItem("moldify-parameters");
     if (saved) {
       try {
@@ -185,14 +191,25 @@ export function useMoldSession() {
         localStorage.removeItem("moldify-parameters");
       }
     }
+    if (!detectBrowserSupport().supported) {
+      setStatus("unsupported");
+      setStage("Browser not supported");
+      return () => jobs.clear();
+    }
     const demo = createDemoBufferGeometry();
-    setGeometry(demo);
-    void analyzeGeometryInWorker(demo);
+    setGeometry((current) => {
+      current.dispose();
+      return demo;
+    });
+    void analyzeSourceInWorker(
+      { kind: "positions", positions: transferablePositions(demo) },
+      null,
+    );
     return () => {
       workerRef.current?.terminate();
       jobs.clear();
     };
-  }, [analyzeGeometryInWorker]);
+  }, [analyzeSourceInWorker]);
 
   useEffect(() => {
     localStorage.setItem("moldify-parameters", JSON.stringify(parameters));
@@ -204,16 +221,13 @@ export function useMoldSession() {
         validateMeshFile(selected);
         setStatus("analyzing");
         setStage("Opening model");
-        const parsed = await parseMeshBuffer(
-          selected.name,
-          await selected.arrayBuffer(),
-        );
-        const preview = geometryForViewport(parsed);
-        setFile(selected);
-        setGeometry(preview);
+        const buffer = await selected.arrayBuffer();
         setGenerated(null);
         setIsStale(false);
-        await analyzeGeometryInWorker(preview);
+        await analyzeSourceInWorker(
+          { kind: "file", name: selected.name, buffer },
+          selected,
+        );
       } catch (error) {
         setStatus("error");
         setStage("Model could not be opened");
@@ -222,17 +236,22 @@ export function useMoldSession() {
         );
       }
     },
-    [analyzeGeometryInWorker],
+    [analyzeSourceInWorker],
   );
 
   const useDemo = useCallback(async () => {
     const demo = createDemoBufferGeometry();
-    setFile(null);
-    setGeometry(demo);
+    setGeometry((current) => {
+      current.dispose();
+      return demo;
+    });
     setGenerated(null);
     setIsStale(false);
-    await analyzeGeometryInWorker(demo);
-  }, [analyzeGeometryInWorker]);
+    await analyzeSourceInWorker(
+      { kind: "positions", positions: transferablePositions(demo) },
+      null,
+    );
+  }, [analyzeSourceInWorker]);
 
   const updateParameter = useCallback(
     <K extends keyof MoldParameters>(key: K, value: MoldParameters[K]) => {
@@ -249,7 +268,6 @@ export function useMoldSession() {
       ...analysis.recommendations,
     }));
     if (generated) setIsStale(true);
-    toast.success("Suggested setup applied");
   }, [analysis, generated]);
 
   const generate = useCallback(async () => {
@@ -259,6 +277,12 @@ export function useMoldSession() {
     setProgress(4);
     setStage("Starting local worker");
     try {
+      await new Promise<void>((resolve) => {
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => resolve());
+        });
+      });
+      if (activeJobId.current !== jobId) return false;
       const message = await requestWorker({
         type: "generate",
         jobId,
@@ -268,6 +292,7 @@ export function useMoldSession() {
       if (message.type !== "generated") {
         throw new Error("Unexpected generation response.");
       }
+      if (activeJobId.current !== jobId) return false;
       setGenerated({
         upper: new Blob([message.upper], { type: "model/stl" }),
         lower: new Blob([message.lower], { type: "model/stl" }),
@@ -277,7 +302,6 @@ export function useMoldSession() {
       setStatus("generated");
       setProgress(100);
       setStage("Ready to download");
-      toast.success("Two-part mold generated");
       return true;
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
@@ -291,7 +315,7 @@ export function useMoldSession() {
       );
       return false;
     } finally {
-      activeJobId.current = null;
+      if (activeJobId.current === jobId) activeJobId.current = null;
     }
   }, [geometry, parameters, requestWorker]);
 
@@ -309,7 +333,6 @@ export function useMoldSession() {
     setStatus(analysis ? "ready" : "idle");
     setProgress(0);
     setStage("Generation cancelled");
-    toast.message("Generation cancelled");
   }, [analysis]);
 
   const download = useCallback((blob: Blob, name: string) => {
@@ -333,7 +356,6 @@ export function useMoldSession() {
     stage,
     generated,
     isStale,
-    sessionId,
     loadFile,
     useDemo,
     updateParameter,

@@ -3,15 +3,20 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
-  serverExternalPackages: ["manifold-3d"],
-  outputFileTracingIncludes: {
-    "/api/generate": ["./node_modules/manifold-3d/manifold.wasm"],
-  },
   turbopack: {
     root: __dirname,
   },
   async headers() {
     return [
+      {
+        source: "/manifold.wasm",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=3600, stale-while-revalidate=86400",
+          },
+        ],
+      },
       {
         source: "/(.*)",
         headers: [
@@ -21,6 +26,7 @@ const nextConfig: NextConfig = {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=()",
           },
+          { key: "X-Frame-Options", value: "DENY" },
         ],
       },
     ];

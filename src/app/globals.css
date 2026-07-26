@@ -60,7 +60,7 @@
   --secondary: oklch(0.915 0.023 72);
   --secondary-foreground: oklch(0.37 0.033 54);
   --muted: oklch(0.927 0.015 75);
-  --muted-foreground: oklch(0.51 0.025 57);
+  --muted-foreground: oklch(0.44 0.025 57);
   --accent: oklch(0.905 0.025 68);
   --accent-foreground: oklch(0.35 0.035 54);
   --destructive: oklch(0.577 0.245 27.325);
@@ -116,7 +116,7 @@
   }
 
   .section-label {
-    @apply text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground;
+    @apply text-xs font-semibold text-muted-foreground;
   }
 
   .grid-floor {
