@@ -1,9 +1,10 @@
 # Moldify
 
-Moldify is a local-first, dark-mode production studio for turning a 3D model
+Moldify is a local-first production studio for turning a 3D model
 into a printable two-part mold. The MVP has no accounts, billing, cloud object
-storage, or persistent project history. Model files are processed in the active
-browser/server session and are not retained.
+storage, or persistent project history. The main studio analyzes models and
+generates STL files directly in the browser; uploaded geometry is not sent to
+the server or retained.
 
 ## What it does
 
@@ -55,6 +56,25 @@ docker build -t moldify .
 docker run --rm -p 3000:3000 moldify
 ```
 
+## Deploy to Vercel
+
+The repository is ready for Vercel's Git integration and requires no environment
+variables:
+
+1. Import `gokmency/moldify` from the Vercel dashboard.
+2. Keep the detected framework as **Next.js** and the root directory as `.`.
+3. Deploy. Vercel uses Node.js 22, `npm ci`, and `npm run build` from the
+   committed configuration.
+
+Pushes to `main` create production deployments after the Git repository is
+connected. Pull requests and non-production branches create preview deployments.
+
+The interactive studio runs geometry analysis and mold generation locally in
+the browser, so normal uploads do not pass through Vercel Functions. The
+`/api/analyze` and `/api/generate` compatibility endpoints remain available for
+small integrations; their payloads are capped at 4 MB to stay below Vercel's
+Function request and response limits.
+
 ## Use
 
 1. Drop an STL, OBJ, GLB, or 3MF file into the source panel, or load the demo.
@@ -98,8 +118,8 @@ docker run --rm -p 3000:3000 moldify
 - Auto orientation is deterministic geometry scoring, not an LLM call.
 - Draft angle is analyzed and recorded in the MVP settings; full per-face draft
   deformation is a future geometry pass.
-- The 50 MB upload ceiling protects the local-first session from memory spikes.
+- The browser studio accepts files up to 50 MB to protect the local-first
+  session from memory spikes. Hosted API compatibility routes use a 4 MB limit.
 
 The repository includes `public/demo-part.stl` plus a richer procedural demo
 used by the application and geometry tests.
-

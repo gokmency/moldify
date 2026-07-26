@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { createDemoBufferGeometry } from "@/lib/demo-geometry";
 import { analyzeGeometry } from "@/lib/mesh-analysis";
-import { parseMeshBuffer, validateMeshFile } from "@/lib/mesh-loader";
+import {
+  MAX_FUNCTION_PAYLOAD_BYTES,
+  parseMeshBuffer,
+  validateMeshFile,
+} from "@/lib/mesh-loader";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
@@ -16,7 +21,7 @@ export async function POST(request: Request) {
       if (!(file instanceof File)) {
         return NextResponse.json({ error: "A mesh file is required." }, { status: 400 });
       }
-      validateMeshFile(file);
+      validateMeshFile(file, MAX_FUNCTION_PAYLOAD_BYTES);
       geometry = await parseMeshBuffer(file.name, await file.arrayBuffer());
     } else {
       const body = (await request.json().catch(() => ({}))) as { demo?: boolean };
@@ -33,4 +38,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

@@ -12,19 +12,26 @@ import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import { SUPPORTED_EXTENSIONS } from "@/lib/mold-types";
 
-const MAX_FILE_BYTES = 50 * 1024 * 1024;
+export const MAX_LOCAL_FILE_BYTES = 50 * 1024 * 1024;
+export const MAX_FUNCTION_PAYLOAD_BYTES = 4 * 1024 * 1024;
 
 export function extensionOf(name: string) {
   return name.toLowerCase().split(".").pop() ?? "";
 }
 
-export function validateMeshFile(file: { name: string; size: number }) {
+export function validateMeshFile(
+  file: { name: string; size: number },
+  maxBytes = MAX_LOCAL_FILE_BYTES,
+) {
   const extension = extensionOf(file.name);
   if (!SUPPORTED_EXTENSIONS.includes(extension as (typeof SUPPORTED_EXTENSIONS)[number])) {
     throw new Error(`Unsupported file type .${extension || "unknown"}. Use STL, OBJ, GLB, or 3MF.`);
   }
   if (file.size <= 0) throw new Error("The selected file is empty.");
-  if (file.size > MAX_FILE_BYTES) throw new Error("Mesh is larger than the 50 MB MVP limit.");
+  if (file.size > maxBytes) {
+    const limitMb = Math.floor(maxBytes / 1024 / 1024);
+    throw new Error(`Mesh is larger than the ${limitMb} MB processing limit.`);
+  }
   return extension;
 }
 

@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import JSZip from "jszip";
 import {
   AlertTriangle,
   Box,
@@ -53,6 +52,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { createDemoBufferGeometry } from "@/lib/demo-geometry";
+import { generateMold } from "@/lib/manifold-engine";
+import { analyzeGeometry } from "@/lib/mesh-analysis";
 import { parseMeshBuffer, validateMeshFile } from "@/lib/mesh-loader";
 import {
   DEFAULT_PARAMETERS,
@@ -144,31 +146,17 @@ export function MoldifyStudio() {
     localStorage.setItem("moldify-parameters", JSON.stringify(parameters));
   }, [parameters]);
 
-  const analyze = useCallback(async (nextFile: File | null) => {
+  const analyze = useCallback(async (nextGeometry: BufferGeometry | null) => {
     setIsAnalyzing(true);
     setGenerated(null);
     setStage("Analyzing geometry");
     try {
-      const response = nextFile
-        ? await fetch("/api/analyze", {
-            method: "POST",
-            body: (() => {
-              const form = new FormData();
-              form.append("file", nextFile);
-              return form;
-            })(),
-          })
-        : await fetch("/api/analyze", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ demo: true }),
-          });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.error || "Analysis failed.");
-      setAnalysis(body);
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+      const result = analyzeGeometry(nextGeometry ?? createDemoBufferGeometry());
+      setAnalysis(result);
       setParameters((current) => ({
         ...current,
-        ...body.recommendations,
+        ...result.recommendations,
       }));
       setStage("Analysis complete");
       toast.success("Geometry analysis complete");
@@ -190,7 +178,7 @@ export function MoldifyStudio() {
       const parsed = await parseMeshBuffer(selected.name, await selected.arrayBuffer());
       setFile(selected);
       setGeometry(parsed);
-      await analyze(selected);
+      await analyze(parsed);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to open the model.");
     }
@@ -229,20 +217,10 @@ export function MoldifyStudio() {
       setStage(pipeline[Math.min(pipeline.length - 1, Math.floor(next / 17))]);
     }, 520);
     try {
-      const body = new FormData();
-      body.append("parameters", JSON.stringify(parameters));
-      if (file) body.append("file", file);
-      const response = await fetch("/api/generate", { method: "POST", body });
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.error || "Generation failed.");
-      }
-      const archive = await JSZip.loadAsync(await response.arrayBuffer());
-      const upper = await archive.file("Upper Mold.stl")?.async("blob");
-      const lower = await archive.file("Lower Mold.stl")?.async("blob");
-      const statsText = await archive.file("moldify-job.json")?.async("text");
-      if (!upper || !lower || !statsText) throw new Error("Generated archive is incomplete.");
-      setGenerated({ upper, lower, stats: JSON.parse(statsText) });
+      const result = await generateMold(geometry, parameters);
+      const upper = new Blob([result.upper.slice().buffer], { type: "model/stl" });
+      const lower = new Blob([result.lower.slice().buffer], { type: "model/stl" });
+      setGenerated({ upper, lower, stats: result.stats });
       setProgress(100);
       setStage("Ready to download");
       toast.success("Two-part mold generated");
