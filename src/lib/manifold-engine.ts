@@ -5,15 +5,18 @@ import type {
 } from "manifold-3d";
 import { BufferGeometry } from "three";
 import type { MoldParameters } from "@/lib/mold-types";
+import type { GenerationStage } from "@/lib/geometry-worker-protocol";
 import { createDemoManifold } from "@/lib/demo-geometry";
 import { meshToBinaryStl } from "@/lib/stl";
 
 let modulePromise: Promise<ManifoldToplevel> | null = null;
 
-async function getModule() {
+async function getModule(wasmUrl?: string) {
   if (!modulePromise) {
     modulePromise = import("manifold-3d").then(async ({ default: factory }) => {
-      const kernel = await factory();
+      const kernel = await factory(
+        wasmUrl ? { locateFile: () => wasmUrl } : undefined,
+      );
       kernel.setup();
       kernel.setCircularSegments(48);
       return kernel;
@@ -116,8 +119,11 @@ function addAndDelete(base: ManifoldSolid, tool: ManifoldSolid) {
 export async function generateMold(
   geometry: BufferGeometry | null,
   parameters: MoldParameters,
+  onProgress?: (stage: GenerationStage) => void,
+  wasmUrl?: string,
 ) {
-  const kernel = await getModule();
+  onProgress?.("prepare");
+  const kernel = await getModule(wasmUrl);
   let model: ManifoldSolid;
   try {
     model = geometry ? geometryToManifold(kernel, geometry) : createDemoManifold(kernel);
@@ -156,6 +162,7 @@ export async function generateMold(
 
   let lower = createHalfBox(kernel, fullSize, axis, false);
   let upper = createHalfBox(kernel, fullSize, axis, true);
+  onProgress?.("cavity");
   const lowerCavity = lower.subtract(model);
   const upperCavity = upper.subtract(model);
   lower.delete();
@@ -163,6 +170,7 @@ export async function generateMold(
   lower = lowerCavity;
   upper = upperCavity;
 
+  onProgress?.("features");
   if (parameters.pinsEnabled && parameters.pinCount > 0) {
     for (const point of pinPositions(fullSize, axis, parameters.pinCount)) {
       const pinHeight = Math.max(3, parameters.pinDiameter * 0.9);
@@ -214,6 +222,7 @@ export async function generateMold(
     }
   }
 
+  onProgress?.("export");
   const upperMesh = upper.getMesh() as ManifoldMesh;
   const lowerMesh = lower.getMesh() as ManifoldMesh;
   const result = {
@@ -230,5 +239,6 @@ export async function generateMold(
   model.delete();
   upper.delete();
   lower.delete();
+  onProgress?.("complete");
   return result;
 }

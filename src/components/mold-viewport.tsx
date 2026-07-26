@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo } from "react";
+import { Suspense, useEffect, useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import {
   Bounds,
@@ -9,7 +9,9 @@ import {
   GizmoViewport,
   Grid,
   OrbitControls,
+  useBounds,
 } from "@react-three/drei";
+import { useThree } from "@react-three/fiber";
 import {
   Box3,
   BufferGeometry,
@@ -19,6 +21,7 @@ import {
 } from "three";
 import type { MoldParameters } from "@/lib/mold-types";
 import { createDemoBufferGeometry } from "@/lib/demo-geometry";
+import type { CameraCommand } from "@/components/studio/studio-types";
 
 export type ViewOptions = {
   wireframe: boolean;
@@ -33,13 +36,48 @@ type Props = {
   geometry: BufferGeometry | null;
   parameters: MoldParameters;
   options: ViewOptions;
+  cameraCommand: CameraCommand;
 };
 
 function axisIndex(axis: MoldParameters["splitDirection"]) {
   return axis === "X" ? 0 : axis === "Y" ? 1 : 2;
 }
 
-function MoldPreview({ geometry, parameters, options }: Props) {
+function CameraRig({ command }: { command: CameraCommand }) {
+  const bounds = useBounds();
+  const { camera, controls } = useThree();
+
+  useEffect(() => {
+    if (command.type === "fit") {
+      bounds.refresh().clip().fit();
+      return;
+    }
+    const positions = {
+      reset: [65, 52, 72],
+      iso: [65, 52, 72],
+      top: [0.01, 120, 0.01],
+      front: [0.01, 0.01, 120],
+    } as const;
+    const position = positions[command.type];
+    if (!position) return;
+    camera.position.set(position[0], position[1], position[2]);
+    camera.lookAt(0, 0, 0);
+    const orbit = controls as
+      | { target?: Vector3; update?: () => void }
+      | undefined;
+    orbit?.target?.set(0, 0, 0);
+    orbit?.update?.();
+  }, [bounds, camera, command, controls]);
+
+  return null;
+}
+
+function MoldPreview({
+  geometry,
+  parameters,
+  options,
+  cameraCommand,
+}: Props) {
   const preview = useMemo(
     () => (geometry ? geometry.clone() : createDemoBufferGeometry()),
     [geometry],
@@ -74,6 +112,7 @@ function MoldPreview({ geometry, parameters, options }: Props) {
 
   return (
     <Bounds fit clip observe margin={1.35}>
+      <CameraRig command={cameraCommand} />
       <group rotation={[-Math.PI / 2, 0, 0]}>
         <mesh geometry={preview}>
           <meshStandardMaterial
@@ -178,14 +217,14 @@ function MoldPreview({ geometry, parameters, options }: Props) {
 
 export function MoldViewport(props: Props) {
   return (
-    <div className="h-full min-h-[420px] w-full" data-testid="3d-viewport">
+    <div className="h-full min-h-[320px] w-full" data-testid="3d-viewport">
       <Canvas
         camera={{ position: [65, 52, 72], fov: 42, near: 0.1, far: 2000 }}
         dpr={[1, 1.75]}
         gl={{ antialias: true, alpha: true }}
       >
-        <color attach="background" args={["#e9dfd2"]} />
-        <fog attach="fog" args={["#e9dfd2", 150, 430]} />
+        <color attach="background" args={["#eee6da"]} />
+        <fog attach="fog" args={["#eee6da", 150, 430]} />
         <ambientLight intensity={1.35} />
         <directionalLight position={[40, 65, 80]} intensity={2.2} color="#fff5e8" />
         <directionalLight position={[-50, -30, 25]} intensity={0.9} color="#d2b99f" />

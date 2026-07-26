@@ -29,5 +29,16 @@ describe("geometry pipeline", () => {
     });
     expect(withPins.lower.byteLength).not.toBe(withoutPins.lower.byteLength);
   });
-});
 
+  it("reports real generation stages in order", async () => {
+    const stages: string[] = [];
+    await generateMold(null, DEFAULT_PARAMETERS, (stage) => stages.push(stage));
+    expect(stages).toEqual([
+      "prepare",
+      "cavity",
+      "features",
+      "export",
+      "complete",
+    ]);
+  });
+});
