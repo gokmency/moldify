@@ -183,7 +183,15 @@ test("generates and downloads a local two-part mold", async ({
   page.on("pageerror", (error) => consoleErrors.push(error.message));
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Moldify" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Moldify", exact: true }),
+  ).toBeVisible();
+  if (await page.locator('[data-testid="unsupported-browser"]').isVisible()) {
+    test.skip(
+      true,
+      `${testInfo.project.name} does not expose the required WebGL context on this runner.`,
+    );
+  }
 
   const mobile = testInfo.project.name === "mobile-safari";
   if (!mobile) {
